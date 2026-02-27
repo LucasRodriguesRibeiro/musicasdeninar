@@ -1,50 +1,168 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Play, Pause, SkipBack, SkipForward, Volume2, Repeat, VolumeX } from 'lucide-react';
 
+/* ─── Playlist ─────────────────────────────────────────────
+   Adicione novos arquivos em /public/musicas/ e inclua
+   o objeto correspondente aqui.
+   ─────────────────────────────────────────────────────────── */
+const PLAYLIST = [
+  { file: '/musicas/ninar 1.mp3', title: 'Ninar I' },
+  { file: '/musicas/ninar 2.mp3', title: 'Ninar II' },
+];
+
+/* ─── Fisher-Yates shuffle ──────────────────────────────── */
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/* ─── Formata segundos → "m:ss" ────────────────────────── */
+function fmt(s: number): string {
+  if (!isFinite(s) || isNaN(s)) return '0:00';
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return `${m}:${sec.toString().padStart(2, '0')}`;
+}
+
 interface AudioPlayerProps {
-  currentTrack: string;
+  /** Prop mantida por compatibilidade — não usada internamente */
+  currentTrack?: string;
   isPlaying: boolean;
   onPlayPause: () => void;
 }
 
-export default function AudioPlayer({ currentTrack, isPlaying, onPlayPause }: AudioPlayerProps) {
-  const [progress, setProgress] = useState(0);
+export default function AudioPlayer({ isPlaying, onPlayPause }: AudioPlayerProps) {
+  /* Cria a playlist embaralhada UMA vez ao montar */
+  const [queue] = useState<typeof PLAYLIST>(() => shuffle(PLAYLIST));
+  const [trackIdx, setTrackIdx] = useState(0);
+  const [progress, setProgress] = useState(0);   // 0–100
+  const [elapsed, setElapsed] = useState('0:00');
+  const [duration, setDuration] = useState('0:00');
   const [volume, setVolume] = useState(0.75);
   const [muted, setMuted] = useState(false);
-  const [loop, setLoop] = useState(true);
-  const [elapsed, setElapsed] = useState('0:00');
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Simula progresso quando está tocando
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const currentTrack = queue[trackIdx];
+
+  /* ── Inicializa o elemento <audio> ─────────────────────── */
   useEffect(() => {
-    if (isPlaying) {
-      intervalRef.current = setInterval(() => {
-        setProgress((prev) => {
-          if (prev >= 100) return 0;
-          const next = prev + 0.083; // ~120 segundos de simulação
-          const seconds = Math.floor((next / 100) * 120);
-          const m = Math.floor(seconds / 60);
-          const s = seconds % 60;
-          setElapsed(`${m}:${s.toString().padStart(2, '0')}`);
-          return next;
-        });
-      }, 100);
-    } else {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    }
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [isPlaying]);
+    const audio = new Audio();
+    audio.preload = 'metadata';
+    audio.volume = volume;
+    audioRef.current = audio;
 
+    return () => {
+      audio.pause();
+      audio.src = '';
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* ── Troca de faixa ────────────────────────────────────── */
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const wasPlaying = isPlaying;
+
+    audio.src = currentTrack.file;
+    audio.load();
+    setProgress(0);
+    setElapsed('0:00');
+    setDuration('0:00');
+
+    if (wasPlaying) {
+      audio.play().catch(() => {/* autoplay blocked — aguarda interação */ });
+    }
+  }, [trackIdx]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* ── Play / Pause sincronizado com prop ────────────────── */
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (isPlaying) {
+      /* Se src ainda não foi definido, define agora */
+      if (!audio.src || audio.src === window.location.href) {
+        audio.src = currentTrack.file;
+        audio.load();
+      }
+      audio.play().catch(() => { });
+    } else {
+      audio.pause();
+    }
+  }, [isPlaying]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* ── Volume / Mute ─────────────────────────────────────── */
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.volume = muted ? 0 : volume;
+  }, [volume, muted]);
+
+  /* ── Eventos do áudio ──────────────────────────────────── */
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const onTimeUpdate = () => {
+      if (!audio.duration) return;
+      setProgress((audio.currentTime / audio.duration) * 100);
+      setElapsed(fmt(audio.currentTime));
+    };
+
+    const onLoadedMetadata = () => {
+      setDuration(fmt(audio.duration));
+    };
+
+    /* Avança para a próxima faixa automaticamente — sem pausas */
+    const onEnded = () => {
+      const nextIdx = (trackIdx + 1) % queue.length;
+      const nextTrackData = queue[nextIdx];
+      // Troca direto no elemento de áudio para evitar gap
+      audio.src = nextTrackData.file;
+      audio.load();
+      audio.play().catch(() => { });
+      setTrackIdx(nextIdx);
+      setProgress(0);
+      setElapsed('0:00');
+    };
+
+    audio.addEventListener('timeupdate', onTimeUpdate);
+    audio.addEventListener('loadedmetadata', onLoadedMetadata);
+    audio.addEventListener('ended', onEnded);
+
+    return () => {
+      audio.removeEventListener('timeupdate', onTimeUpdate);
+      audio.removeEventListener('loadedmetadata', onLoadedMetadata);
+      audio.removeEventListener('ended', onEnded);
+    };
+  }, [queue.length]);
+
+  /* ── Garante que a próxima faixa toca após a troca ─────── */
+  const goTo = useCallback((idx: number) => {
+    setTrackIdx(idx);
+    /* Se estava pausado, não precisa forçar play */
+  }, []);
+
+  const prevTrack = () => goTo((trackIdx - 1 + queue.length) % queue.length);
+  const nextTrack = () => goTo((trackIdx + 1) % queue.length);
+
+  /* ── Clique na barra de progresso ──────────────────────── */
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = (e.target as HTMLDivElement).getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    setProgress((x / rect.width) * 100);
+    const audio = audioRef.current;
+    if (!audio || !audio.duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ratio = (e.clientX - rect.left) / rect.width;
+    audio.currentTime = ratio * audio.duration;
+    setProgress(ratio * 100);
   };
 
-  const totalDuration = '2:00';
-
+  /* ── Render ─────────────────────────────────────────────── */
   return (
     <div
       className="card fade-up"
@@ -56,7 +174,7 @@ export default function AudioPlayer({ currentTrack, isPlaying, onPlayPause }: Au
         boxShadow: 'var(--shadow-soft)',
       }}
     >
-      {/* Topo: status + título */}
+      {/* Status + nome da faixa */}
       <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
         <div
           style={{
@@ -99,11 +217,23 @@ export default function AudioPlayer({ currentTrack, isPlaying, onPlayPause }: Au
           }}
         >
           <span aria-hidden>🎵</span>
-          <span>{currentTrack}</span>
+          <span>{currentTrack.title}</span>
+        </div>
+
+        {/* Indicador de faixa: ex "1 / 2" */}
+        <div
+          style={{
+            fontSize: '0.68rem',
+            color: 'var(--color-text-muted)',
+            marginTop: '0.35rem',
+            letterSpacing: '0.08em',
+          }}
+        >
+          {trackIdx + 1} / {queue.length}
         </div>
       </div>
 
-      {/* Progress bar */}
+      {/* Barra de progresso */}
       <div
         className={isPlaying ? 'shimmer-playing' : ''}
         style={{ marginBottom: '0.5rem' }}
@@ -117,13 +247,17 @@ export default function AudioPlayer({ currentTrack, isPlaying, onPlayPause }: Au
           aria-valuemin={0}
           aria-valuemax={100}
           tabIndex={0}
+          onKeyDown={(e) => {
+            const audio = audioRef.current;
+            if (!audio) return;
+            if (e.key === 'ArrowRight') audio.currentTime = Math.min(audio.currentTime + 5, audio.duration);
+            if (e.key === 'ArrowLeft') audio.currentTime = Math.max(audio.currentTime - 5, 0);
+          }}
         >
-          <div
-            className="progress-fill"
-            style={{ width: `${progress}%` }}
-          />
+          <div className="progress-fill" style={{ width: `${progress}%` }} />
         </div>
       </div>
+
       {/* Tempo */}
       <div
         style={{
@@ -136,7 +270,7 @@ export default function AudioPlayer({ currentTrack, isPlaying, onPlayPause }: Au
         }}
       >
         <span>{elapsed}</span>
-        <span>{totalDuration}</span>
+        <span>{duration}</span>
       </div>
 
       {/* Controles principais */}
@@ -152,6 +286,7 @@ export default function AudioPlayer({ currentTrack, isPlaying, onPlayPause }: Au
         {/* Anterior */}
         <button
           aria-label="Faixa anterior"
+          onClick={prevTrack}
           style={{
             background: 'none',
             border: 'none',
@@ -162,14 +297,8 @@ export default function AudioPlayer({ currentTrack, isPlaying, onPlayPause }: Au
             borderRadius: '50%',
             transition: 'color 0.2s ease',
           }}
-          onMouseEnter={(e) =>
-          ((e.currentTarget as HTMLButtonElement).style.color =
-            'var(--color-text-primary)')
-          }
-          onMouseLeave={(e) =>
-          ((e.currentTarget as HTMLButtonElement).style.color =
-            'var(--color-text-muted)')
-          }
+          onMouseEnter={(e) => ((e.currentTarget).style.color = 'var(--color-text-primary)')}
+          onMouseLeave={(e) => ((e.currentTarget).style.color = 'var(--color-text-muted)')}
         >
           <SkipBack size={22} />
         </button>
@@ -180,16 +309,16 @@ export default function AudioPlayer({ currentTrack, isPlaying, onPlayPause }: Au
           onClick={onPlayPause}
           aria-label={isPlaying ? 'Pausar' : 'Tocar'}
         >
-          {isPlaying ? (
-            <Pause size={28} fill="white" strokeWidth={0} />
-          ) : (
-            <Play size={28} fill="white" strokeWidth={0} style={{ marginLeft: '3px' }} />
-          )}
+          {isPlaying
+            ? <Pause size={28} fill="white" strokeWidth={0} />
+            : <Play size={28} fill="white" strokeWidth={0} style={{ marginLeft: '3px' }} />
+          }
         </button>
 
         {/* Próxima */}
         <button
           aria-label="Próxima faixa"
+          onClick={nextTrack}
           style={{
             background: 'none',
             border: 'none',
@@ -200,20 +329,14 @@ export default function AudioPlayer({ currentTrack, isPlaying, onPlayPause }: Au
             borderRadius: '50%',
             transition: 'color 0.2s ease',
           }}
-          onMouseEnter={(e) =>
-          ((e.currentTarget as HTMLButtonElement).style.color =
-            'var(--color-text-primary)')
-          }
-          onMouseLeave={(e) =>
-          ((e.currentTarget as HTMLButtonElement).style.color =
-            'var(--color-text-muted)')
-          }
+          onMouseEnter={(e) => ((e.currentTarget).style.color = 'var(--color-text-primary)')}
+          onMouseLeave={(e) => ((e.currentTarget).style.color = 'var(--color-text-muted)')}
         >
           <SkipForward size={22} />
         </button>
       </div>
 
-      {/* Controles secundários: Loop + Volume */}
+      {/* Loop (sempre ativo visualmente) + Volume */}
       <div
         style={{
           display: 'flex',
@@ -222,19 +345,18 @@ export default function AudioPlayer({ currentTrack, isPlaying, onPlayPause }: Au
           gap: '1rem',
         }}
       >
-        {/* Loop */}
+        {/* Loop — sempre ativo (a playlist é circular) */}
         <button
-          aria-label={loop ? 'Desativar repetição' : 'Ativar repetição'}
-          aria-pressed={loop}
-          onClick={() => setLoop(!loop)}
+          aria-label="Repetição de playlist ativa"
+          aria-pressed={true}
+          title="Playlist em loop contínuo"
           style={{
             background: 'none',
             border: 'none',
-            cursor: 'pointer',
-            color: loop ? 'var(--color-accent)' : 'var(--color-text-muted)',
+            cursor: 'default',
+            color: 'var(--color-accent)',
             display: 'flex',
             padding: '0.25rem',
-            transition: 'color 0.2s ease',
           }}
         >
           <Repeat size={18} />
@@ -252,7 +374,7 @@ export default function AudioPlayer({ currentTrack, isPlaying, onPlayPause }: Au
         >
           <button
             aria-label={muted ? 'Ativar som' : 'Silenciar'}
-            onClick={() => setMuted(!muted)}
+            onClick={() => setMuted((v) => !v)}
             style={{
               background: 'none',
               border: 'none',
