@@ -1,0 +1,544 @@
+@import "tailwindcss";
+
+@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500&display=swap');
+
+/* =============================================
+   DESIGN TOKENS — Sono Sereno
+   Paleta: Azul-meia-noite, Lavanda suave, Creme
+   ============================================= */
+:root {
+  --color-night-950: #0b0c1a;
+  --color-night-900: #111228;
+  --color-night-800: #1a1c35;
+  --color-night-700: #22254a;
+  --color-night-600: #2e3260;
+
+  --color-lavender-400: #a5a8e0;
+  --color-lavender-300: #bdbfe8;
+  --color-lavender-200: #d4d6f0;
+  --color-lavender-100: #eaebf8;
+  --color-lavender-50: #f3f4fc;
+
+  --color-blush-300: #e8c5d0;
+  --color-blush-200: #f1d9e2;
+  --color-blush-100: #f8ecf0;
+
+  --color-cream-100: #fdf9f3;
+  --color-cream-200: #f6f0e6;
+
+  --color-text-primary: #eef0fb;
+  --color-text-secondary: #9ea3cc;
+  --color-text-muted: #5f658f;
+
+  --color-accent: #8b8fc9;
+  --color-accent-soft: #b2b6e0;
+
+  --font-serif: 'Lora', Georgia, serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+
+  --radius-card: 20px;
+  --radius-pill: 100px;
+
+  --shadow-soft: 0 4px 32px rgba(0, 0, 10, 0.35);
+  --shadow-card: 0 2px 16px rgba(0, 0, 10, 0.25);
+  --shadow-btn: 0 4px 20px rgba(139, 143, 201, 0.3);
+}
+
+/* =============================================
+   BASE RESET & BODY
+   ============================================= */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-night-950);
+  color: var(--color-text-primary);
+  line-height: 1.7;
+  min-height: 100dvh;
+}
+
+/* =============================================
+   SCROLLBAR DISCRETA
+   ============================================= */
+::-webkit-scrollbar {
+  width: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-night-900);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-night-700);
+  border-radius: 100px;
+}
+
+/* =============================================
+   SELECTION
+   ============================================= */
+::selection {
+  background: rgba(139, 143, 201, 0.25);
+  color: var(--color-text-primary);
+}
+
+/* =============================================
+   TIPOGRAFIA BASE
+   ============================================= */
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-serif);
+  line-height: 1.25;
+  font-weight: 500;
+}
+
+p {
+  font-weight: 300;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* =============================================
+   BOTÃO BASE (btn)
+   ============================================= */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.85rem 2rem;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  text-decoration: none;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #7a7ec4, #9b8fd6);
+  color: #fff;
+  box-shadow: var(--shadow-btn);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(139, 143, 201, 0.45);
+}
+
+.btn-ghost {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-text-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-text-primary);
+  transform: translateY(-1px);
+}
+
+/* =============================================
+   CARD BASE
+   ============================================= */
+.card {
+  background: rgba(26, 28, 53, 0.7);
+  border: 1px solid rgba(164, 168, 224, 0.1);
+  border-radius: var(--radius-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* =============================================
+   AURA — FUNDO SUAVE DO HERO (mágico e discreto)
+   ============================================= */
+.hero-aura {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hero-aura::before {
+  content: '';
+  position: absolute;
+  top: -20%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 400px;
+  background: radial-gradient(ellipse at center,
+      rgba(139, 143, 201, 0.12) 0%,
+      rgba(155, 143, 214, 0.06) 40%,
+      transparent 70%);
+  border-radius: 100%;
+}
+
+.hero-aura::after {
+  content: '';
+  position: absolute;
+  bottom: 10%;
+  right: 10%;
+  width: 250px;
+  height: 250px;
+  background: radial-gradient(ellipse at center,
+      rgba(232, 197, 208, 0.07) 0%,
+      transparent 70%);
+  border-radius: 100%;
+}
+
+/* =============================================
+   INTENT CARD (Seleção de intenção)
+   ============================================= */
+.intent-card {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 1.1rem 1.25rem;
+  border-radius: 14px;
+  background: rgba(26, 28, 53, 0.55);
+  border: 1px solid rgba(164, 168, 224, 0.1);
+  cursor: pointer;
+  transition: all 0.22s ease;
+  text-align: left;
+  width: 100%;
+  font-family: var(--font-sans);
+  color: var(--color-text-secondary);
+}
+
+.intent-card:hover {
+  background: rgba(34, 37, 74, 0.8);
+  border-color: rgba(164, 168, 224, 0.22);
+  color: var(--color-text-primary);
+  transform: translateY(-1px);
+}
+
+.intent-card.active {
+  background: rgba(122, 126, 196, 0.18);
+  border-color: rgba(139, 143, 201, 0.45);
+  color: var(--color-text-primary);
+}
+
+.intent-card .intent-emoji {
+  font-size: 1.5rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.intent-card .intent-label {
+  font-size: 0.95rem;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+
+/* =============================================
+   PROGRESS BAR DO PLAYER
+   ============================================= */
+.progress-track {
+  position: relative;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 100px;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #7a7ec4, #b2b6e0);
+  border-radius: 100px;
+  transition: width 0.1s linear;
+}
+
+/* =============================================
+   PLAY BUTTON
+   ============================================= */
+.play-btn {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #7a7ec4, #9b8fd6);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 4px 24px rgba(122, 126, 196, 0.5);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  flex-shrink: 0;
+}
+
+.play-btn:hover {
+  transform: scale(1.06);
+  box-shadow: 0 8px 32px rgba(122, 126, 196, 0.6);
+}
+
+.play-btn:active {
+  transform: scale(0.96);
+}
+
+/* =============================================
+   BENEFIT CARD
+   ============================================= */
+.benefit-card {
+  padding: 1.75rem 1.5rem;
+  border-radius: 18px;
+  background: rgba(22, 24, 48, 0.55);
+  border: 1px solid rgba(164, 168, 224, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.benefit-card:hover {
+  border-color: rgba(164, 168, 224, 0.18);
+  transform: translateY(-2px);
+}
+
+.benefit-emoji {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+/* =============================================
+   PRODUCT CARD
+   ============================================= */
+.product-card {
+  background: linear-gradient(135deg, rgba(34, 37, 74, 0.8) 0%, rgba(26, 28, 53, 0.95) 100%);
+  border: 1px solid rgba(139, 143, 201, 0.2);
+  border-radius: 24px;
+  padding: 3rem 2.5rem;
+  text-align: center;
+  max-width: 480px;
+  margin: 0 auto;
+  position: relative;
+  overflow: hidden;
+}
+
+.product-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(164, 168, 224, 0.4), transparent);
+}
+
+/* =============================================
+   AD BANNER
+   ============================================= */
+.ad-banner {
+  border: 1px dashed rgba(164, 168, 224, 0.1);
+  border-radius: 12px;
+  background: rgba(15, 16, 30, 0.5);
+  padding: 1.25rem;
+  text-align: center;
+}
+
+/* =============================================
+   DIVIDER SUTIL
+   ============================================= */
+.divider {
+  width: 48px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(164, 168, 224, 0.35), transparent);
+  margin: 0 auto;
+}
+
+/* =============================================
+   SEÇÃO SPACING
+   ============================================= */
+.section {
+  width: 100%;
+  padding: 3.5rem 1.25rem;
+}
+
+.section-inner {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.section-inner-wide {
+  max-width: 880px;
+  margin: 0 auto;
+}
+
+/* =============================================
+   ANIMAÇÃO BREATHING (pulsação suave)
+   ============================================= */
+@keyframes breathe {
+
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+
+.breathing {
+  animation: breathe 4s ease-in-out infinite;
+}
+
+/* =============================================
+   ANIMAÇÃO SHIMMER (barra de progresso)
+   ============================================= */
+@keyframes shimmer {
+  0% {
+    background-position: -200% center;
+  }
+
+  100% {
+    background-position: 200% center;
+  }
+}
+
+.shimmer-playing .progress-fill {
+  background: linear-gradient(90deg, #7a7ec4, #b2b6e0, #7a7ec4);
+  background-size: 200% auto;
+  animation: shimmer 2.5s linear infinite;
+}
+
+/* =============================================
+   FADE-IN SUAVE (componentes)
+   ============================================= */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-up {
+  animation: fadeUp 0.6s ease both;
+}
+
+/* =============================================
+   SEPARADOR ESTRELA
+   ============================================= */
+.star-sep {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  color: var(--color-text-muted);
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.star-sep::before,
+.star-sep::after {
+  content: '';
+  flex: 1;
+  max-width: 60px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(164, 168, 224, 0.2));
+}
+
+.star-sep::after {
+  background: linear-gradient(90deg, rgba(164, 168, 224, 0.2), transparent);
+}
+
+/* =============================================
+   RANGE INPUT (volume)
+   ============================================= */
+input[type="range"] {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 100px;
+  outline: none;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  cursor: pointer;
+}
+
+/* =============================================
+   HEADER NAV — RESPONSIVE
+   ============================================= */
+
+/* Mobile: esconde nav desktop, mostra hamburger */
+.header-nav-desktop {
+  display: none !important;
+}
+
+.header-menu-btn {
+  display: flex !important;
+}
+
+/* Desktop (≥768px): mostra nav, esconde hamburger */
+@media (min-width: 768px) {
+  .header-nav-desktop {
+    display: flex !important;
+  }
+
+  .header-menu-btn {
+    display: none !important;
+  }
+}
+
+/* =============================================
+   SEO TEXT — borda lateral no hover
+   ============================================= */
+.seo-paragraph:hover {
+  border-color: rgba(139, 143, 201, 0.3);
+}
+
+/* =============================================
+   RESPONSIVE GERAL
+   ============================================= */
+@media (max-width: 480px) {
+  .section {
+    padding: 2.5rem 1rem;
+  }
+
+  .product-card {
+    padding: 2rem 1.5rem;
+  }
+}
